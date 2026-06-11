@@ -129,10 +129,20 @@ function renderTaskDetails() {
     : '<span class="file-pill">Lahendusfaile ei leitud</span>';
 
   taskDetails.innerHTML = `
-    <h2>${task.id} - ${task.title}</h2>
-    <div class="file-list">${files}</div>
-    <button id="start-button" class="primary-button" type="button">Genereeri küsimused ja alusta</button>
-    <h2>Ülesande kirjeldus</h2>
+    <div class="task-detail-header">
+      <div class="task-heading">
+        <span class="task-label">Valitud ülesanne</span>
+        <h2>${task.id} - ${task.title}</h2>
+        <div class="file-list">${files}</div>
+      </div>
+      <button id="start-button" class="primary-button start-button" type="button">
+        Genereeri uued küsimused ja alusta
+      </button>
+    </div>
+    <div class="section-heading">
+      <span class="section-line"></span>
+      <h2>Ülesande kirjeldus</h2>
+    </div>
     <div class="assignment">${escapeHtml(task.assignment)}</div>
   `;
   document.querySelector("#start-button").addEventListener("click", startGame);

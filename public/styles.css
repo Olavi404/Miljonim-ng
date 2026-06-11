@@ -80,6 +80,45 @@ h2 {
   font-size: 22px;
 }
 
+.task-detail-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 22px;
+}
+
+.task-heading h2 {
+  margin-bottom: 12px;
+  color: #c9d6ea;
+}
+
+.task-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.section-heading {
+  display: grid;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.section-heading h2 {
+  margin-bottom: 0;
+  color: #d7deeb;
+}
+
+.section-line {
+  display: block;
+  height: 1px;
+  background: var(--line);
+}
+
 .layout,
 .game-view {
   display: grid;
@@ -121,15 +160,18 @@ h2 {
   white-space: pre-wrap;
   max-height: 340px;
   overflow: auto;
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
+  margin-top: 16px;
+  padding: 18px;
+  background: #171d25;
+  border: 1px solid var(--line);
+  border-radius: 8px;
 }
 
 .file-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 16px 0;
+  margin: 0;
 }
 
 .file-pill {
@@ -144,6 +186,12 @@ h2 {
   background: var(--accent);
   color: #19160d;
   border-color: var(--accent);
+}
+
+.start-button {
+  min-width: 260px;
+  padding: 14px 18px;
+  box-shadow: 0 10px 26px rgba(227, 179, 65, 0.18);
 }
 
 .ghost-button {
@@ -243,9 +291,19 @@ h2 {
 
 @media (max-width: 820px) {
   .topbar,
-  .game-status {
+  .game-status,
+  .task-detail-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .task-detail-header {
+    display: flex;
+  }
+
+  .start-button {
+    width: 100%;
+    min-width: 0;
   }
 
   .layout,
