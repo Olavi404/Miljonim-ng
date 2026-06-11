@@ -1,0 +1,22 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f4f8;
+}
+
+.calculator {
+  width: min(420px, 100% - 32px);
+  margin: 60px auto;
+  display: grid;
+  gap: 12px;
+  background: white;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+input,
+select,
+button {
+  padding: 10px;
+  font-size: 16px;
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="et">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kalkulaator</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="calculator">
+      <h1>Kalkulaator</h1>
+      <input id="first-number" type="number" placeholder="Esimene arv" />
+      <select id="operator">
+        <option value="+">+</option>
+        <option value="-">-</option>
+        <option value="*">*</option>
+        <option value="/">/</option>
+      </select>
+      <input id="second-number" type="number" placeholder="Teine arv" />
+      <button id="calculate-button" type="button">Arvuta</button>
+      <p id="result"></p>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>

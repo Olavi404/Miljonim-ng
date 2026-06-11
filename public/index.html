@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="et">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Miljonimäng</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">TAK25 projekt</p>
+          <h1>Miljonimäng</h1>
+        </div>
+        <button id="new-game-button" class="ghost-button" type="button">Uus mäng</button>
+      </section>
+
+      <section id="task-view" class="layout">
+        <aside class="panel">
+          <h2>Vali ülesanne</h2>
+          <div id="task-list" class="task-list"></div>
+        </aside>
+
+        <section class="panel grow">
+          <div id="task-details" class="empty-state">
+            Vali vasakult ülesanne, et näha kirjeldust ja alustada küsimuste genereerimist.
+          </div>
+        </section>
+      </section>
+
+      <section id="game-view" class="game-view hidden">
+        <aside class="score-panel">
+          <h2>Punktid</h2>
+          <ol id="money-list" class="money-list"></ol>
+        </aside>
+
+        <section class="question-panel">
+          <div class="game-status">
+            <span id="question-counter"></span>
+            <span id="current-safe-score"></span>
+          </div>
+          <h2 id="question-text"></h2>
+          <div id="answers" class="answers"></div>
+          <div class="lifelines">
+            <button id="fifty-button" type="button">50:50</button>
+            <button id="hint-button" type="button">AI vihje</button>
+            <button id="audience-button" type="button">Publik</button>
+            <button id="quit-button" type="button" class="danger">Jäta pooleli</button>
+          </div>
+          <div id="feedback" class="feedback hidden"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
