@@ -19,6 +19,7 @@ const points = [
 ];
 const safeLevels = new Set([4, 9, 14]);
 const letters = ["A", "B", "C", "D"];
+const staticBaseUrl = new URL("../", document.currentScript.src);
 
 const taskList = document.querySelector("#task-list");
 const taskDetails = document.querySelector("#task-details");
@@ -50,8 +51,20 @@ async function requestJson(url, options) {
   return data;
 }
 
+async function requestText(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("Faili laadimine ebaõnnestus.");
+  }
+  return response.text();
+}
+
 async function loadTasks() {
-  state.tasks = await requestJson("/api/tasks");
+  try {
+    state.tasks = await requestJson("/api/tasks");
+  } catch {
+    state.tasks = await requestJson(new URL("input/tasks.json", staticBaseUrl));
+  }
   renderTasks();
 }
 
@@ -74,11 +87,39 @@ function renderTasks() {
 }
 
 async function selectTask(taskId) {
-  state.selectedTask = await requestJson(`/api/tasks/${taskId}`);
+  try {
+    state.selectedTask = await requestJson(`/api/tasks/${taskId}`);
+  } catch {
+    state.selectedTask = await loadStaticTask(taskId);
+  }
   [...document.querySelectorAll(".task-card")].forEach((button) => {
     button.classList.toggle("active", button.textContent.startsWith(`${taskId} -`));
   });
   renderTaskDetails();
+}
+
+async function loadStaticTask(taskId) {
+  const manifest = await requestJson(new URL("input/tasks.json", staticBaseUrl));
+  const task = manifest.find((item) => item.id === taskId);
+  if (!task) {
+    throw new Error("Ülesannet ei leitud.");
+  }
+
+  const taskBaseUrl = new URL(`input/${taskId}/`, staticBaseUrl);
+  const assignment = await requestText(new URL("assignment.md", taskBaseUrl));
+  const files = await Promise.all(
+    task.files.map(async (filePath) => ({
+      path: filePath,
+      content: await requestText(new URL(filePath, taskBaseUrl)),
+    })),
+  );
+
+  return {
+    id: task.id,
+    title: task.title || getTitleFromAssignment(assignment, task.id),
+    assignment,
+    files,
+  };
 }
 
 function renderTaskDetails() {
@@ -108,7 +149,11 @@ function escapeHtml(value) {
 async function startGame() {
   if (!state.selectedTask) return;
 
-  state.questions = await requestJson(`/api/tasks/${state.selectedTask.id}/questions`, { method: "POST" });
+  try {
+    state.questions = await requestJson(`/api/tasks/${state.selectedTask.id}/questions`, { method: "POST" });
+  } catch {
+    state.questions = generateQuestions(state.selectedTask);
+  }
   state.currentIndex = 0;
   state.score = 0;
   state.safeScore = 0;
@@ -119,6 +164,159 @@ async function startGame() {
   gameView.classList.remove("hidden");
   renderMoneyList();
   renderQuestion();
+}
+
+function getTitleFromAssignment(markdown, fallback) {
+  const heading = markdown.split(/\r?\n/).find((line) => line.trim().startsWith("# "));
+  return heading ? heading.replace(/^#\s+/, "").trim() : `Ülesanne ${fallback}`;
+}
+
+function pickTechnologies(files) {
+  const names = files.map((file) => file.path.toLowerCase());
+  const tech = [];
+  if (names.some((name) => name.endsWith(".html"))) tech.push("HTML");
+  if (names.some((name) => name.endsWith(".css"))) tech.push("CSS");
+  if (names.some((name) => name.endsWith(".js"))) tech.push("JavaScript");
+  if (names.some((name) => name.endsWith(".json"))) tech.push("JSON");
+  if (names.some((name) => name.endsWith(".py"))) tech.push("Python");
+  return tech.length ? tech : ["üldine failistruktuur"];
+}
+
+function inferTopics(context) {
+  const text = `${context.assignment}\n${context.files.map((file) => file.content).join("\n")}`.toLowerCase();
+  const topics = [];
+  if (text.includes("addeventlistener")) topics.push("sündmuste kuulamine");
+  if (text.includes("localstorage")) topics.push("localStorage");
+  if (text.includes("fetch")) topics.push("andmete laadimine fetchiga");
+  if (text.includes("json")) topics.push("JSON-andmed");
+  if (text.includes("innerhtml")) topics.push("innerHTML ja turvariskid");
+  if (text.includes("form")) topics.push("vormi töötlemine");
+  if (text.includes("array") || text.includes(".map") || text.includes(".filter")) topics.push("massiivide töötlemine");
+  return topics.length ? topics : ["lahenduse loogika", "nõuetele vastavus"];
+}
+
+function shuffle(array) {
+  return array
+    .map((value) => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ value }) => value);
+}
+
+function makeQuestion(level, question, options, correctIndex, explanation) {
+  const correct = options[correctIndex];
+  const shuffledOptions = shuffle(options);
+  return {
+    level,
+    question,
+    options: shuffledOptions,
+    correctIndex: shuffledOptions.indexOf(correct),
+    explanation,
+  };
+}
+
+function generateQuestions(context) {
+  const tech = pickTechnologies(context.files).join(", ");
+  const topics = inferTopics(context).join(", ");
+  const fileList = context.files.map((file) => file.path).join(", ") || "lahendusfaile ei leitud";
+
+  const bank = [
+    makeQuestion(1, `Mis on ülesande "${context.title}" peamine eesmärk?`, [
+      "Kontrollida ainult failinimede olemasolu",
+      "Mõista ülesande nõudeid ja lahenduse loogikat",
+      "Asendada kõik koodifailid piltidega",
+      "Käivitada server ilma kasutajaliideseta",
+    ], 1, "Projekt keskendub sellele, kas õppija saab aru nõuetest ja lahenduse loogikast."),
+    makeQuestion(2, `Milliseid tehnoloogiaid on selle ülesande lahenduses näha?`, [
+      tech,
+      "Ainult andmebaasiserver",
+      "Ainult pilditöötlus",
+      "Operatsioonisüsteemi skriptid ilma rakenduseta",
+    ], 0, `Failide põhjal kasutatakse siin: ${tech}.`),
+    makeQuestion(3, "Miks on assignment.md faili lugemine oluline?", [
+      "See kirjeldab ülesande nõudeid ja hindamiskriteeriume",
+      "See kustutab vanad küsimused automaatselt",
+      "See muudab brauseri keelt",
+      "See asendab lahendusfailid",
+    ], 0, "Küsimused peavad lähtuma ülesande püstitusest, mitte ainult lahendusfailidest."),
+    makeQuestion(4, "Mida tähendab, et küsimus kontrollib arusaamist, mitte mälu?", [
+      "Küsimus küsib ainult faili täpset nime",
+      "Küsimus nõuab loogika, põhjuse või tagajärje mõistmist",
+      "Küsimus on alati ilma vastusevariantideta",
+      "Küsimus väldib ülesande sisu",
+    ], 1, "Sisuline küsimus paneb selgitama, miks mingi lahenduse osa olemas on või kuidas see töötab."),
+    makeQuestion(5, `Millised failid annavad AI-le selle ülesande kohta konteksti?`, [
+      fileList,
+      "Ainult serveri logid",
+      "Ainult node_modules kaust",
+      "Ainult brauseri küpsised",
+    ], 0, `Selles ülesandes loeti lahendusfailid: ${fileList}.`),
+    makeQuestion(6, `Milliste teemade ümber võiksid keskmise raskusega küsimused siin tekkida?`, [
+      topics,
+      "Ainult värvide nimed",
+      "Ainult failide loomise kuupäevad",
+      "Ainult arvuti riistvara",
+    ], 0, `Lahenduse sisust paistavad teemad: ${topics}.`),
+    makeQuestion(7, "Miks peab lahendusfaile lugedes ignoreerima näiteks node_modules ja .git kaustu?", [
+      "Need võivad olla väga suured ega kirjelda õppija lahenduse sisu",
+      "Need sisaldavad alati õigeid vastuseid",
+      "Need on vajalikud ainult CSS-i värvimiseks",
+      "Need muudavad assignment.md faili pealkirja",
+    ], 0, "Ignoreerimine hoiab konteksti lühema ja aitab keskenduda õppija tehtud failidele."),
+    makeQuestion(8, "Mis juhtub miljonimängu loogikas vale vastuse korral?", [
+      "Mäng jätkub sama küsimusega lõputult",
+      "Mäng lõpeb ja tulemus langeb viimasele turvatasemele",
+      "Kõik vastused märgitakse õigeks",
+      "Ülesande failid kustutatakse",
+    ], 1, "Reeglite järgi vale vastus lõpetab mängu ja alles jääb viimane saavutatud turvatase."),
+    makeQuestion(9, "Miks on igal küsimusel vaja täpselt ühte õiget vastust?", [
+      "Mängu kontrolliloogika peab saama vastuse üheselt hinnata",
+      "Siis saab küsimusi vähem olla",
+      "See teeb README faili lühemaks",
+      "See välistab vajaduse assignment.md järele",
+    ], 0, "Üheselt õige vastus võimaldab automaatselt kontrollida, kas mängija vastas õigesti."),
+    makeQuestion(10, "Miks võiks küsimuste genereerimine iga mängu alguses veidi muutuda?", [
+      "Et õppija ei õpiks lihtsalt kindlat vastuste järjekorda pähe",
+      "Et ülesande failid kaoksid",
+      "Et punktid oleksid alati null",
+      "Et turvatasemeid ei oleks vaja",
+    ], 0, "Uued või segatud küsimused aitavad paremini kontrollida tegelikku arusaamist."),
+    makeQuestion(11, "Milline risk tekib, kui AI-le antakse liiga vähe konteksti?", [
+      "Küsimused võivad muutuda üldiseks ega kontrolli konkreetset lahendust",
+      "Küsimused muutuvad automaatselt liiga lihtsaks HTML-iks",
+      "Server ei saa enam porte kasutada",
+      "Kõik vastusevariandid muutuvad piltideks",
+    ], 0, "Ilma assignment.md ja lahendusfailideta ei saa AI teha sisulisi konkreetse töö põhiseid küsimusi."),
+    makeQuestion(12, "Mida peaks tegema, kui lahenduses kasutatakse innerHTML-i kasutaja sisendi kuvamiseks?", [
+      "Mõtlema XSS-riskile ja eelistama turvalisemat tekstisisu lisamist",
+      "Kustutama assignment.md faili",
+      "Lisama alati rohkem fonte",
+      "Muutma kõik küsimused ühevariandiliseks",
+    ], 0, "Kasutaja sisendi otse HTML-i lisamine võib avada XSS-turvariski."),
+    makeQuestion(13, "Miks on küsimuste genereerimine eraldi moodulina või funktsioonina parem kui otse UI-koodi sees?", [
+      "Seda saab hiljem lihtsamalt päris AI API vastu vahetada",
+      "See keelab mitme ülesande kasutamise",
+      "See teeb kõik vastused valeks",
+      "See eemaldab vajaduse serveri järele",
+    ], 0, "Selge eraldus teeb projekti edasiarendamise ja AI ühendamise lihtsamaks."),
+    makeQuestion(14, "Kuidas kontrollida, kas uus ülesanne sobib rakendusega ilma koodi muutmata?", [
+      "Lisada uus numbriline kaust input/ alla koos assignment.md ja lahendusfailidega",
+      "Muuta alati server.js faili nime",
+      "Kustutada kõik olemasolevad ülesanded",
+      "Luua node_modules kausta käsitsi küsimused",
+    ], 0, "Nõuete järgi peab uue ülesande lisamine käima input/ numbrilise alamkausta kaudu."),
+    makeQuestion(15, "Mis on selle lahenduse kõige olulisem edasiarenduse koht?", [
+      "Simuleeritud küsimusegeneraatori asendamine päris AI API ühendusega",
+      "Kõigi punktide muutmine nulliks",
+      "assignment.md faili keelamine",
+      "Valikvastuste arvu vähendamine ühele",
+    ], 0, "Praegu on AI osa simuleeritud, aga struktuur jätab selge koha päris API lisamiseks."),
+  ];
+
+  return bank.map((question, index) => ({
+    ...question,
+    level: index + 1,
+    difficulty: index < 5 ? "lihtne" : index < 10 ? "keskmine" : "raske",
+  }));
 }
 
 function renderMoneyList() {

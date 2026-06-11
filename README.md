@@ -16,6 +16,8 @@ Praeguses versioonis on AI osa simuleeritud, kuid küsimuste genereerimise loogi
 
 ## Käivitamise juhend
 
+### Kohalik käivitamine Node.js serveriga
+
 1. Paigalda Node.js.
 2. Ava terminal projekti kaustas.
 3. Käivita rakendus:
@@ -30,6 +32,27 @@ node server.js
 http://localhost:3000
 ```
 
+### GitHub Pages
+
+Rakendust saab hostida ka GitHub Pages lehel, sest juurkaustas on staatiline `index.html`.
+
+GitHubis:
+
+1. Ava repository `Settings`.
+2. Vali vasakult `Pages`.
+3. `Build and deployment` all vali `Deploy from a branch`.
+4. Branch: `main`.
+5. Folder: `/root`.
+6. Salvesta.
+
+Pärast avaldamist on leht kujul:
+
+```text
+https://olavi404.github.io/Miljonim-ng/
+```
+
+GitHub Pages ei käivita `server.js` faili. Sellepärast kasutab leht staatilises režiimis faili `input/tasks.json`, kust saab teada, millised ülesanded ja lahendusfailid tuleb laadida.
+
 ## Input-kausta struktuur
 
 Ülesanded asuvad `input/` kaustas numbriliste alamkaustadena.
@@ -41,9 +64,20 @@ input/
     index.html
     style.css
     script.js
+  tasks.json
 ```
 
 Igas ülesande kaustas peab olema `assignment.md`. Lahendusfailid võivad olla samas kaustas või alamkaustades. Rakendus ignoreerib näiteks `.git`, `node_modules` ja `vendor` kaustu.
+
+Kui lisad GitHub Pages versiooni jaoks uue ülesande, lisa see ka faili `input/tasks.json`, näiteks:
+
+```json
+{
+  "id": "002",
+  "title": "Uue ülesande nimi",
+  "files": ["index.html", "style.css", "script.js"]
+}
+```
 
 ## AI küsimuste genereerimise loogika
 
